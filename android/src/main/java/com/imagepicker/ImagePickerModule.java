@@ -45,7 +45,7 @@ public class ImagePickerModule extends ReactContextBaseJavaModule {
   static final int REQUEST_IMAGE_CROPPING = 3;
 
   private final ReactApplicationContext mReactContext;
-  private final Activity mMainActivity;
+  private Activity mMainActivity;
 
   private Uri mCameraCaptureURI;
   private Uri mCropImagedUri;
@@ -74,8 +74,15 @@ public class ImagePickerModule extends ReactContextBaseJavaModule {
     return "UIImagePickerManager"; // To coincide with the iOS native module name
   }
 
+    public void setTopActivity(Activity activity) {
+        mMainActivity = activity;
+    }
+
   @ReactMethod
   public void showImagePicker(final ReadableMap options, final Callback callback) {
+      if (mMainActivity == null) {
+          throw new RuntimeException("No current activity set.");
+      }
       response = Arguments.createMap();
 
       List<String> mTitles = new ArrayList<String>();
@@ -148,6 +155,9 @@ public class ImagePickerModule extends ReactContextBaseJavaModule {
   // NOTE: Currently not reentrant / doesn't support concurrent requests
   @ReactMethod
   public void launchCamera(final ReadableMap options, final Callback callback) {
+      if (mMainActivity == null) {
+          throw new RuntimeException("No current activity set.");
+      }
     response = Arguments.createMap();
 
     if (options.hasKey("noData")) {
@@ -217,6 +227,9 @@ public class ImagePickerModule extends ReactContextBaseJavaModule {
   // NOTE: Currently not reentrant / doesn't support concurrent requests
   @ReactMethod
   public void launchImageLibrary(final ReadableMap options, final Callback callback) {
+      if (mMainActivity == null) {
+          throw new RuntimeException("No current activity set.");
+      }
     response = Arguments.createMap();
 
     if (options.hasKey("noData")) {
@@ -398,7 +411,8 @@ public class ImagePickerModule extends ReactContextBaseJavaModule {
     response.putString("path", realPath);
 
     if (!noData) {
-        response.putString("data", getBase64StringFromFile(realPath));
+        // response.putString("data", getBase64StringFromFile(realPath));
+        response.putString("data", getBase64StringForPngFromUri(uri));
     }
     mCallback.invoke(response);
   }
@@ -446,6 +460,20 @@ public class ImagePickerModule extends ReactContextBaseJavaModule {
     }
 
     return file;
+  }
+
+  // Encode the image in PNG then return its base64 representation
+  private String getBase64StringForPngFromUri(Uri uri) {
+      try {
+          Bitmap bitmap = MediaStore.Images.Media.getBitmap(mMainActivity.getContentResolver(), uri);
+          ByteArrayOutputStream stream = new ByteArrayOutputStream();
+          bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+          byte[] bitmapdata = stream.toByteArray();
+          String encodedImage = Base64.encodeToString(bitmapdata, Base64.DEFAULT);
+          return encodedImage;
+      } catch (Exception e) {
+          return "";
+      }
   }
 
   private String getBase64StringFromFile (String absoluteFilePath) {

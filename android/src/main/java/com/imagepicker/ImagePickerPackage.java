@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class ImagePickerPackage implements ReactPackage {
-  private final Activity mMainActivity;
+  private Activity mMainActivity;
   private ImagePickerModule mModuleInstance;
 
   public ImagePickerPackage(Activity mainActivity) {
@@ -44,5 +44,9 @@ public class ImagePickerPackage implements ReactPackage {
       }
 
       mModuleInstance.onActivityResult(requestCode, resultCode, data);
+  }
+
+  public void setTopActivity(Activity activity) {
+    mModuleInstance.setTopActivity(activity);
   }
 }
